@@ -1,0 +1,25 @@
+{
+  "name": "employee-tracker",
+  "version": "1.0.0",
+  "description": "Command line application to view and change a database of employees, departments, and roles.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DuncanMarten/employee-tracker.git"
+  },
+  "author": "Duncan Marten",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DuncanMarten/employee-tracker/issues"
+  },
+  "homepage": "https://github.com/DuncanMarten/employee-tracker#readme",
+  "dependencies": {
+    "console.table": "^0.10.0",
+    "inquirer": "^7.3.3",
+    "mysql2": "^2.2.5"
+  }
+}
