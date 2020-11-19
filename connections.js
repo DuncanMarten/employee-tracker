@@ -23,7 +23,15 @@ viewRoles = () => {
 };
 
 viewAllEmployees = () => {
-    connection.query(`SELECT * FROM employees`, function(err, res) {
+    connection.query(`SELECT A.id, A.first_name, A.last_name, roles.title, departments.name AS department, roles.salary, concat(B.first_name, ' ', B.last_name) AS manager
+    FROM employees A
+    LEFT JOIN roles
+    ON A.role_id = roles.id
+    LEFT JOIN departments
+    ON roles.department_id = departments.id
+    LEFT JOIN employees B
+    ON A.manager_id = B.id;`, 
+    function(err, res) {
         if (err) throw err;
         console.table(res);
     });
@@ -53,11 +61,36 @@ addRole = (title, salary, id) => {
     });
 };
 
+addEmployee = (first, last, roleId, managerId) => {
+    connection.query(`INSERT INTO employees SET ?`,
+    {
+        first_name: first,
+        last_name: last,
+        role_id: roleId,
+        manager_id: managerId
+    },
+    function(err, res) {
+        if (err) throw err;
+        console.log(res.affectedRows + ' employee inserted!\n');
+    });
+};
+
+updateRole = (newId, first, last) => {
+    connection.query(`UPDATE employees SET ? WHERE ?`,
+    [{role_id: newId}, {first_name: first, last_name: last}],
+    function(err, res) {
+        if (err) throw err;
+        console.log(res.affectedRows + ' employee role updated!\n');
+    });
+};
+
 
 module.exports = {
     viewDepartment,
     viewRoles,
     viewAllEmployees,
     addDepartment,
-    addRole
+    addRole,
+    addEmployee,
+    updateRole
 };

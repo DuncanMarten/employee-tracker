@@ -1,5 +1,5 @@
 const inquirer = require('inquirer');
-const { viewDepartment, viewRoles, viewAllEmployees, addDepartment, addRole } = require('./connections');
+const { viewDepartment, viewRoles, viewAllEmployees, addDepartment, addRole, addEmployee, updateRole } = require('./connections');
 
 
 const departArr = [];
@@ -36,7 +36,7 @@ const mainPrompt = () => {
                 addEmployeePrompt();
                 break;
             case "updateByRole":
-                console.log('update by role');
+                updateRolePrompt();
                 break;
         }
     });
@@ -76,16 +76,14 @@ const addRolePrompt = () => {
             type: 'list',
             name: 'roleDepartment',
             message: 'What department is this role in?',
-            choices: [{name: 'Sales', value: 1}, {name: 'Engineering', value: 2}, {name: 'Finance', value: 3}, {name: 'Legal', value: 4}]
+            choices: [{name: 'Sales', value: '1'}, {name: 'Engineering', value: '2'}, {name: 'Finance', value: '3'}, {name: 'Legal', value: '4'}]
         }
     ])
     .then((roleData) => {
         const str = JSON.stringify(roleData).split('"');
         const title = str[3];
         const salary = str[7];
-        const split1 = str[10].split(':');
-        const split2 = split1[1].split('}');
-        const id = split2[0];
+        const id = str[11];
         console.log(title, salary, id);
         rolesArr.push(roleData)
         addRole(title, salary, id);
@@ -110,38 +108,59 @@ const addEmployeePrompt = () => {
             type: 'list',
             name: 'employeeRole',
             message: "What is the employee's role?",
-            choices: [1,2,3]
+            choices: [{name: 'lead', value: '1'}, {name: 'manager', value: '2'}, {name: 'worker', value: '3'}]
         },
         {
             type: 'list',
             name: 'manager',
             message: "Who manages this employee?",
-            choices: ['none', 1, 2, 3]
+            choices: [{name: 'none', value: 'null'}, {name: 'Bob', value: '1'}, {name: 'Jeff', value: '2'}, {name: 'Henry', value: '3'}]
         }
     ])
     .then(employeeData => {
         employeeArr.push(employeeData)
-        console.log(employeeArr);
+        const str = JSON.stringify(employeeData).split('"');
+        const first = str[3];
+        const last = str[7];
+        const role = str[11];
+        const manager = str[15];
+        // if (manager = null){
+        //     let manager = 'null';
+        //     console.log(manager);
+        //     return;
+        // }
+        // console.log(first, last, role, manager);
+        addEmployee(first, last, role, manager);
         mainPrompt();
     });
 };
 
-const updateRole = () => {
+const updateRolePrompt = () => {
     return inquirer.prompt([
         // update employee role
         {
             type: 'list',
             name: 'employeeName',
             message: "Which employee's role are you updating?",
-            choices: [1,2,3]
+            choices: ['Jeff Golblum', 'Tom Cruise', 'Matt Damon']
         },
         {
             type: 'list',
             name: 'newRole',
             message: "What is the employee's new role?",
-            choices: [1,2,3]
+            choices: [{name: 'Service', value: '1'}, {name: 'Lawyer', value: '2'}, {name: 'Engineer', value: '3'}]
         }
     ])
+    .then (updateData => {
+        const str = JSON.stringify(updateData).split('"');
+        const fullName = str[3];
+        const splitName = fullName.split(' ');
+        const first = splitName[0];
+        const last = splitName[1];
+        const newRoleId = str[7];
+        updateRole(newRoleId, first, last);
+        mainPrompt();
+    })
 };
 
 mainPrompt()
