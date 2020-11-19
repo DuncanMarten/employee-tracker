@@ -1,4 +1,10 @@
 const inquirer = require('inquirer');
+const { viewDepartment, viewRoles, viewAllEmployees, addDepartment, addRole } = require('./connections');
+
+
+const departArr = [];
+const rolesArr = [];
+const employeeArr = [];
 
 const mainPrompt = () => {
     return inquirer.prompt(
@@ -6,12 +12,37 @@ const mainPrompt = () => {
             type: 'list',
             name: 'options',
             message: 'What would you like to do?',
-            choices: ['View All Departments', 'View All Roles', 'View All Employees', 'Add a Department', 'Add a Role', 'Add an Employee', 'Update and Employee Role']
+            choices: [{ name: 'View All Departments', value: 'view-departments' }, { name: 'View All Roles', value: 'view-roles' }, { name: 'View All Employees', value: 'viewAll' }, { name: 'Add a Department', value: 'add-Depart' }, { name: 'Add a Role', value: 'add-Role' }, { name: 'Add an Employee', value: 'add-Employee' }, { name: 'Update and Employee Role', value: 'updateByRole' }]
         }
     )
+    .then(({ options }) => {
+        switch (options) {
+            case "view-departments":
+                viewDepartment();
+                break;
+            case "view-roles":
+                viewRoles();
+                break;
+            case "viewAll": 
+                viewAllEmployees();
+                break;
+            case "add-Depart":
+                addDepartmentPrompt();
+                break;
+            case "add-Role":
+                addRolePrompt();
+                break;
+            case "add-Employee":
+                addEmployeePrompt();
+                break;
+            case "updateByRole":
+                console.log('update by role');
+                break;
+        }
+    });
 };
 
-const addDepartment = () => {
+const addDepartmentPrompt = () => {
     return inquirer.prompt(
         // add department
         {
@@ -20,9 +51,15 @@ const addDepartment = () => {
             message: 'What is the name of the department being added?'
         }
     )
+    .then(department => {
+        const name = JSON.stringify(department).split('"');
+        departArr.push(department);
+        addDepartment(name[3]);
+        mainPrompt();
+    });
 };
 
-const addRole = () => {
+const addRolePrompt = () => {
     return inquirer.prompt([
         // add role
         {
@@ -39,12 +76,24 @@ const addRole = () => {
             type: 'list',
             name: 'roleDepartment',
             message: 'What department is this role in?',
-            choices: ['Sales', 'Engineering', 'Finance', 'Legal']
+            choices: [{name: 'Sales', value: 1}, {name: 'Engineering', value: 2}, {name: 'Finance', value: 3}, {name: 'Legal', value: 4}]
         }
     ])
+    .then((roleData) => {
+        const str = JSON.stringify(roleData).split('"');
+        const title = str[3];
+        const salary = str[7];
+        const split1 = str[10].split(':');
+        const split2 = split1[1].split('}');
+        const id = split2[0];
+        console.log(title, salary, id);
+        rolesArr.push(roleData)
+        addRole(title, salary, id);
+        mainPrompt();
+    });
 };
 
-const addEmployee = () => {
+const addEmployeePrompt = () => {
     return inquirer.prompt([
         // add employee
         {
@@ -70,6 +119,11 @@ const addEmployee = () => {
             choices: ['none', 1, 2, 3]
         }
     ])
+    .then(employeeData => {
+        employeeArr.push(employeeData)
+        console.log(employeeArr);
+        mainPrompt();
+    });
 };
 
 const updateRole = () => {
@@ -90,6 +144,7 @@ const updateRole = () => {
     ])
 };
 
+mainPrompt()
 .then(employeeInfo => {
     console.log(employeeInfo);
 })
