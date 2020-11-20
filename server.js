@@ -6,7 +6,7 @@ const connection = mysql.createConnection({
     host: 'localhost',
     port: 3306,
     user: 'root',
-    password: '=Soccer17',
+    password: '',
     database: 'employee_db'
 });
 
@@ -96,7 +96,7 @@ function Employee() {
 
 // View all departments
 viewDepartment = () => {
-    connection.query(`SELECT name FROM departments`, function(err, res) {
+    connection.query(`SELECT name, id FROM departments`, function(err, res) {
         if (err) throw err;
         const table = cTable.getTable(res);
         console.log(table);
@@ -106,7 +106,7 @@ viewDepartment = () => {
 
 // View all roles
 viewRoles = () => {
-    connection.query(`SELECT title, salary, name AS department
+    connection.query(`SELECT title, roles.id, name AS department, salary
     FROM roles
     LEFT JOIN departments
     ON roles.department_id = departments.id
