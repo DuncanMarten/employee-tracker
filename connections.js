@@ -1,4 +1,5 @@
 const mysql = require('mysql2');
+const cTable = require('console.table');
 
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -8,17 +9,61 @@ const connection = mysql.createConnection({
     database: 'employee_db'
 });
 
+const mainPrompt = require('./server');
+
+
+// getDepartments = () => {
+//     let array = [];
+//     connection.promise().query(`SELECT name, id FROM departments`)
+//     .then(result => {
+//         array = array.concat(result);
+//         return Promise.resolve(array);
+//     })
+//     .catch(err => {
+//         console.log(err)
+//     })
+// };
+
+getDepartments = async() => {
+    const mysql2 = require('mysql2/promise');
+
+    const con = mysql2.createConnection({
+        host: 'localhost',
+        port: 3306,
+        user: 'root',
+        password: '=Soccer17',
+        database: 'employee_db'
+    });
+
+    try{
+        const resultSet = await con.execute(`SELECT name, id FROM departments`)
+        return Promise.resolve(resultSet);
+    }
+    catch (err) {
+        console.error(err)
+    }
+};
+
 viewDepartment = () => {
-    connection.query(`SELECT * FROM departments`, function(err, res) {
+    connection.query(`SELECT name FROM departments`, function(err, res) {
         if (err) throw err;
-        console.table(res);
+        const table = cTable.getTable(res);
+        console.log(table);
+        mainPrompt();
     });
 };
 
 viewRoles = () => {
-    connection.query(`SELECT * FROM roles`, function(err, res) {
+    connection.query(`SELECT title, salary, name AS department
+    FROM roles
+    LEFT JOIN departments
+    ON roles.department_id = departments.id
+    ORDER BY name;`, 
+    function(err, res) {
         if (err) throw err;
-        console.table(res);
+        const table = cTable.getTable(res);
+        console.log(table);
+        mainPrompt();
     });
 };
 
@@ -33,56 +78,29 @@ viewAllEmployees = () => {
     ON A.manager_id = B.id;`, 
     function(err, res) {
         if (err) throw err;
-        console.table(res);
+        const table = cTable.getTable(res);
+        console.log(table);
+        mainPrompt();
     });
 };
 
 addDepartment = (department) => {
-    connection.query(`INSERT INTO departments SET ?`,
-    {
-        name: department
-    },
-    function(err, res) {
-        if (err) throw err;
-        console.log(res.affectedRows + ' department inserted!\n');
-    });
+    
 };
 
 addRole = (title, salary, id) => {
-    connection.query(`INSERT INTO roles SET ?`,
-    {
-        title: title,
-        salary: salary,
-        department_id: id
-    },
-    function(err, res) {
-        if (err) throw err;
-        console.log(res.affectedRows + ' role inserted!\n');
-    });
+    
 };
 
 addEmployee = (first, last, roleId, managerId) => {
-    connection.query(`INSERT INTO employees SET ?`,
-    {
-        first_name: first,
-        last_name: last,
-        role_id: roleId,
-        manager_id: managerId
-    },
-    function(err, res) {
-        if (err) throw err;
-        console.log(res.affectedRows + ' employee inserted!\n');
-    });
+    
 };
 
 updateRole = (newId, first, last) => {
-    connection.query(`UPDATE employees SET ? WHERE ?`,
-    [{role_id: newId}, {first_name: first, last_name: last}],
-    function(err, res) {
-        if (err) throw err;
-        console.log(res.affectedRows + ' employee role updated!\n');
-    });
+    
 };
+
+
 
 
 module.exports = {
@@ -92,5 +110,7 @@ module.exports = {
     addDepartment,
     addRole,
     addEmployee,
-    updateRole
+    updateRole,
+    getDepartments,
+    endConnection,
 };

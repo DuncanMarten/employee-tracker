@@ -1,18 +1,30 @@
 const inquirer = require('inquirer');
-const { viewDepartment, viewRoles, viewAllEmployees, addDepartment, addRole, addEmployee, updateRole } = require('./connections');
+const mysql = require('mysql2');
+const cTable = require('console.table');
 
+const connection = mysql.createConnection({
+    host: 'localhost',
+    port: 3306,
+    user: 'root',
+    password: '=Soccer17',
+    database: 'employee_db'
+});
 
-const departArr = [];
-const rolesArr = [];
-const employeeArr = [];
+// Connect to mysql
+connection.connect(err => {
+    if (err) throw err;
+    console.log('connected as id ' + connection.threadId + '\n');
+    mainPrompt();
+})
 
-const mainPrompt = () => {
+// Starter Prompt
+mainPrompt = () => {
     return inquirer.prompt(
         {
             type: 'list',
             name: 'options',
             message: 'What would you like to do?',
-            choices: [{ name: 'View All Departments', value: 'view-departments' }, { name: 'View All Roles', value: 'view-roles' }, { name: 'View All Employees', value: 'viewAll' }, { name: 'Add a Department', value: 'add-Depart' }, { name: 'Add a Role', value: 'add-Role' }, { name: 'Add an Employee', value: 'add-Employee' }, { name: 'Update and Employee Role', value: 'updateByRole' }]
+            choices: [{ name: 'View All Departments', value: 'view-departments' }, { name: 'View All Roles', value: 'view-roles' }, { name: 'View All Employees', value: 'viewAll' }, { name: 'Add a Department', value: 'add-Depart' }, { name: 'Add a Role', value: 'add-Role' }, { name: 'Add an Employee', value: 'add-Employee' }, { name: 'Update an Employee Role', value: 'updateByRole' }, {name: 'Finish', value: 'finish'}]
         }
     )
     .then(({ options }) => {
@@ -38,11 +50,107 @@ const mainPrompt = () => {
             case "updateByRole":
                 updateRolePrompt();
                 break;
+            case "finish":
+                endConnection();
+                break;
         }
+        console.log('\n');
     });
 };
 
-const addDepartmentPrompt = () => {
+// Make array of roles
+let roleArr = [];
+function Role() {
+    connection.query('SELECT * FROM roles', function(err, res) {
+        if (err) throw err;
+        for (let i = 0; i < res.length; i++) {
+            roleArr.push(res[i].title);
+        }
+    })
+    return roleArr;
+}
+
+// Make array of managers
+let managerArr = [];
+function Manager() {
+    connection.query(`SELECT concat(first_name, ' ', last_name) AS fullname FROM employees WHERE manager_id IS null`, function(err, res) {
+        if (err) throw err;
+        for (let i = 0; i < res.length; i++) {
+            managerArr.push(res[i].fullname);
+        }
+    })
+    return managerArr;
+}
+
+// Make array of departments
+let departmentArr = [];
+function Department() {
+    connection.query('SELECT * FROM departments', function(err, res) {
+        if (err) throw err;
+        for (let i = 0; i < res.length; i++) {
+            departmentArr.push(res[i].name);
+        }
+    })
+    return departmentArr;
+}
+
+// Make array of all employees
+let employeeArr = [];
+function Employee() {
+    connection.query(`SELECT concat(first_name, ' ', last_name) AS full_name FROM employees`, function(err, res) {
+        if (err) throw err;
+        for (let i = 0; i < res.length; i++) {
+            employeeArr.push(res[i].full_name);
+        }
+    })
+    return employeeArr;
+}
+
+// View all departments
+viewDepartment = () => {
+    connection.query(`SELECT name FROM departments`, function(err, res) {
+        if (err) throw err;
+        const table = cTable.getTable(res);
+        console.log(table);
+        mainPrompt();
+    });
+};
+
+// View all roles
+viewRoles = () => {
+    connection.query(`SELECT title, salary, name AS department
+    FROM roles
+    LEFT JOIN departments
+    ON roles.department_id = departments.id
+    ORDER BY name;`, 
+    function(err, res) {
+        if (err) throw err;
+        const table = cTable.getTable(res);
+        console.log(table);
+        mainPrompt();
+    });
+};
+
+// view all employees
+viewAllEmployees = () => {
+    connection.query(`SELECT A.id, A.first_name, A.last_name, roles.title, departments.name AS department, roles.salary, concat(B.first_name, ' ', B.last_name) AS manager
+    FROM employees A
+    LEFT JOIN roles
+    ON A.role_id = roles.id
+    LEFT JOIN departments
+    ON roles.department_id = departments.id
+    LEFT JOIN employees B
+    ON A.manager_id = B.id;`, 
+    function(err, res) {
+        if (err) throw err;
+        const table = cTable.getTable(res);
+        console.log(table);
+        mainPrompt();
+    });
+};
+
+//Add a Department
+addDepartmentPrompt = () => {
     return inquirer.prompt(
         // add department
         {
@@ -51,17 +159,22 @@ const addDepartmentPrompt = () => {
             message: 'What is the name of the department being added?'
         }
     )
-    .then(department => {
-        const name = JSON.stringify(department).split('"');
-        departArr.push(department);
-        addDepartment(name[3]);
-        mainPrompt();
+    .then(value => {
+        connection.query(`INSERT INTO departments SET ?`,
+        {
+            name: value.departmentName
+        },
+        function(err, res) {
+            if (err) throw err;
+            console.log(res.affectedRows + ' department inserted!\n');
+            mainPrompt();
+        });
     });
 };
 
-const addRolePrompt = () => {
+// Add a Role
+addRolePrompt = () => {
     return inquirer.prompt([
-        // add role
         {
             type: 'input',
             name: 'roleName',
@@ -76,24 +189,28 @@ const addRolePrompt = () => {
             type: 'list',
             name: 'roleDepartment',
             message: 'What department is this role in?',
-            choices: [{name: 'Sales', value: '1'}, {name: 'Engineering', value: '2'}, {name: 'Finance', value: '3'}, {name: 'Legal', value: '4'}]
+            choices: Department()
         }
     ])
-    .then((roleData) => {
-        const str = JSON.stringify(roleData).split('"');
-        const title = str[3];
-        const salary = str[7];
-        const id = str[11];
-        console.log(title, salary, id);
-        rolesArr.push(roleData)
-        addRole(title, salary, id);
-        mainPrompt();
+    .then(value=> {
+        let id = Department().indexOf(value.roleDepartment) + 1;
+        connection.query(`INSERT INTO roles SET ?`,
+        {
+            title: value.roleName,
+            salary: value.roleSalary,
+            department_id: id
+        },
+        function(err, res) {
+            if (err) throw err;
+            console.log(res.affectedRows + ' role inserted!\n');
+            mainPrompt();
+        });
     });
 };
 
-const addEmployeePrompt = () => {
+// Add an Employee
+addEmployeePrompt = () => {
     return inquirer.prompt([
-        // add employee
         {
             type: 'input',
             name: 'firstName',
@@ -108,65 +225,64 @@ const addEmployeePrompt = () => {
             type: 'list',
             name: 'employeeRole',
             message: "What is the employee's role?",
-            choices: [{name: 'lead', value: '1'}, {name: 'manager', value: '2'}, {name: 'worker', value: '3'}]
+            choices: Role()
         },
         {
             type: 'list',
             name: 'manager',
             message: "Who manages this employee?",
-            choices: [{name: 'none', value: 'null'}, {name: 'Bob', value: '1'}, {name: 'Jeff', value: '2'}, {name: 'Henry', value: '3'}]
+            choices: Manager()
         }
     ])
-    .then(employeeData => {
-        employeeArr.push(employeeData)
-        const str = JSON.stringify(employeeData).split('"');
-        const first = str[3];
-        const last = str[7];
-        const role = str[11];
-        const manager = str[15];
-        // if (manager = null){
-        //     let manager = 'null';
-        //     console.log(manager);
-        //     return;
-        // }
-        // console.log(first, last, role, manager);
-        addEmployee(first, last, role, manager);
-        mainPrompt();
+    .then(value => {
+        let roleId = Role().indexOf(value.employeeRole) + 1;
+        let managerId = Manager().indexOf(value.manager) + 1;
+        connection.query(`INSERT INTO employees SET ?`,
+        {
+            first_name: value.firstName,
+            last_name: value.lastName,
+            role_id: roleId,
+            manager_id: managerId
+        },
+        function(err, res) {
+            if (err) throw err;
+            console.log(res.affectedRows + ' employee inserted!\n');
+            mainPrompt();
+        });
     });
 };
 
-const updateRolePrompt = () => {
+//FIX
+updateRolePrompt = () => {
     return inquirer.prompt([
         // update employee role
         {
             type: 'list',
-            name: 'employeeName',
+            name: 'employee',
             message: "Which employee's role are you updating?",
-            choices: ['Jeff Golblum', 'Tom Cruise', 'Matt Damon']
+            choices: Manager()
         },
         {
             type: 'list',
             name: 'newRole',
             message: "What is the employee's new role?",
-            choices: [{name: 'Service', value: '1'}, {name: 'Lawyer', value: '2'}, {name: 'Engineer', value: '3'}]
+            choices: Role()
         }
     ])
-    .then (updateData => {
-        const str = JSON.stringify(updateData).split('"');
-        const fullName = str[3];
-        const splitName = fullName.split(' ');
-        const first = splitName[0];
-        const last = splitName[1];
-        const newRoleId = str[7];
-        updateRole(newRoleId, first, last);
-        mainPrompt();
-    })
+    .then (value => {
+        let employeeId = Manager().indexOf(value.employee) + 1;
+        let roleId = Role().indexOf(value.employeeRole) + 1;
+        connection.query(`UPDATE employees SET ? WHERE ?`,
+        [{role_id: roleId}, {id: employeeId}],
+        function(err, res) {
+            if (err) throw err;
+            console.log(res.affectedRows + ' employee role updated!\n');
+            mainPrompt();
+        });
+    });
 };
 
-mainPrompt()
-.then(employeeInfo => {
-    console.log(employeeInfo);
-})
-.catch (err => {
-    console.log(err)
-});
+endConnection = () => {
+    connection.end();
+    return;
+}

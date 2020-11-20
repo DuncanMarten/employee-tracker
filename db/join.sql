@@ -6,3 +6,8 @@ LEFT JOIN departments
 ON roles.department_id = departments.id
 LEFT JOIN employees B
 ON A.manager_id = B.id;
+
+SELECT title, salary, name
+FROM roles
+LEFT JOIN departments
+ON roles.department_id = departments.id;
