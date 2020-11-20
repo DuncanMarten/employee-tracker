@@ -70,18 +70,6 @@ function Role() {
     return roleArr;
 }
 
-// Make array of managers
-let managerArr = [];
-function Manager() {
-    connection.query(`SELECT concat(first_name, ' ', last_name) AS fullname FROM employees WHERE manager_id IS null`, function(err, res) {
-        if (err) throw err;
-        for (let i = 0; i < res.length; i++) {
-            managerArr.push(res[i].fullname);
-        }
-    })
-    return managerArr;
-}
-
 // Make array of departments
 let departmentArr = [];
 function Department() {
@@ -231,12 +219,12 @@ addEmployeePrompt = () => {
             type: 'list',
             name: 'manager',
             message: "Who manages this employee?",
-            choices: Manager()
+            choices: Employee()
         }
     ])
     .then(value => {
         let roleId = Role().indexOf(value.employeeRole) + 1;
-        let managerId = Manager().indexOf(value.manager) + 1;
+        let managerId = Employee().indexOf(value.manager) + 1;
         connection.query(`INSERT INTO employees SET ?`,
         {
             first_name: value.firstName,
@@ -252,15 +240,14 @@ addEmployeePrompt = () => {
     });
 };
 
-//FIX
+// Update employees role
 updateRolePrompt = () => {
     return inquirer.prompt([
-        // update employee role
         {
             type: 'list',
             name: 'employee',
             message: "Which employee's role are you updating?",
-            choices: Manager()
+            choices: Employee()
         },
         {
             type: 'list',
@@ -270,10 +257,10 @@ updateRolePrompt = () => {
         }
     ])
     .then (value => {
-        let employeeId = Manager().indexOf(value.employee) + 1;
-        let roleId = Role().indexOf(value.employeeRole) + 1;
+        let employeeId = Employee().indexOf(value.employee) + 1;
+        let roleId = Role().indexOf(value.newRole) + 1;
         connection.query(`UPDATE employees SET ? WHERE ?`,
-        [{role_id: roleId}, {id: employeeId}],
+        [{ role_id: roleId }, { id: employeeId }],
         function(err, res) {
             if (err) throw err;
             console.log(res.affectedRows + ' employee role updated!\n');
